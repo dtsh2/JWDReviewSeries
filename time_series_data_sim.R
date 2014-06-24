@@ -44,7 +44,7 @@ plot(x4)#,type="l")
 test<-morlet(x4, x1 = seq_along(x4), p2 = NULL, dj = 0.25, siglvl = 0.95)
 wavelet.plot(test)
 
-plot(1:1000,x,
+plot(1:1000,w,
      #type="l",
      ylim=c(0,350),axes="n")
 lines(1:1000,Seasonal+80)
@@ -122,7 +122,7 @@ par(mfrow=c(2,4))
 acf(res.all$Sp[seq(from=1,to=1000,by=100)], lag.max = length(res.all$Sp[seq(from=1,to=1000,by=100)]),plot=T,main="")
 barplot2(res.all$Sp[seq(from=1,to=1000,by=100)], plot.ci=TRUE, ci.l=res.all$L[seq(from=1,to=1000,by=100)], ci.u=res.all$U[seq(from=1,to=1000,by=100)],
          ylim=c(0,1),main="",ci.lty=2)#,names.arg=c(1:20))
-lmres<-lm(res.all$Sp[seq(from=1,to=1000,by=100)]~seq(from=1,to=1000,by=100))
+lmres<-lm(res.all$Sp[seq(from=1,to=1000,by=100)]~seq(from=1,to=10))
 abline(lmres,col="red",
        lty=2,lwd=2)
 pt<-prop.test(res.all$P[seq(from=1,to=1000,by=100)],res.all$N[seq(from=1,to=1000,by=100)])
@@ -134,7 +134,7 @@ text(signif(pt$p.value,2),x=length(seq(from=1,to=1000,by=100))/2,y=0.5)
 acf(res.all$Sp[seq(from=1,to=1000,by=10)], lag.max = length(res.all$Sp[seq(from=1,to=1000,by=10)]),plot=T,main="")
 barplot2(res.all$Sp[seq(from=1,to=1000,by=10)], plot.ci=TRUE, ci.l=res.all$L[seq(from=1,to=1000,by=10)], ci.u=res.all$U[seq(from=1,to=1000,by=10)],
          ylim=c(0,1),main="",ci.lty=2)#,names.arg=c(1:20))
-lmres<-lm(res.all$Sp[seq(from=1,to=1000,by=10)]~seq(from=1,to=1000,by=10))
+lmres<-lm(res.all$Sp[seq(from=1,to=1000,by=10)]~seq(from=1,to=100))
 abline(lmres,col="red",
        lty=2,lwd=2)
 pt<-prop.test(res.all$P[seq(from=1,to=1000,by=10)],res.all$N[seq(from=1,to=1000,by=10)])
@@ -146,7 +146,7 @@ text(signif(pt$p.value,2),x=length(seq(from=1,to=1000,by=10))/2,y=0.5)
 acf(res.all$Sp[seq(from=1,to=100,by=10)], lag.max = length(res.all$Sp[seq(from=1,to=100,by=10)]),plot=T,main="")
 barplot2(res.all$Sp[seq(from=1,to=100,by=10)], plot.ci=TRUE, ci.l=res.all$L[seq(from=1,to=100,by=10)], ci.u=res.all$U[seq(from=1,to=100,by=10)],
          ylim=c(0,1),main="",ci.lty=2)#,names.arg=c(1:20))
-lmres<-lm(res.all$Sp[seq(from=1,to=100,by=10)]~seq(from=1,to=100,by=10))
+lmres<-lm(res.all$Sp[seq(from=1,to=100,by=10)]~seq(from=1,to=10))
 abline(lmres,col="red",
        lty=2,lwd=2)
 pt<-prop.test(res.all$P[seq(from=1,to=100,by=10)],res.all$N[seq(from=1,to=100,by=10)])
@@ -158,7 +158,7 @@ text(signif(pt$p.value,2),x=length(seq(from=1,to=100,by=10))/2,y=0.5)
 acf(res.all$Sp[seq(from=1,to=100,by=5)], lag.max = length(res.all$Sp[seq(from=1,to=100,by=5)]),plot=T,main="")
 barplot2(res.all$Sp[seq(from=1,to=100,by=5)], plot.ci=TRUE, ci.l=res.all$L[seq(from=1,to=100,by=5)], ci.u=res.all$U[seq(from=1,to=100,by=5)],
          ylim=c(0,1),main="",ci.lty=2)#,names.arg=c(1:20))
-lmres<-lm(res.all$Sp[seq(from=1,to=100,by=5)]~seq(from=1,to=100,by=5))
+lmres<-lm(res.all$Sp[seq(from=1,to=100,by=5)]~seq(from=1,to=20))
 abline(lmres,col="red",
        lty=2,lwd=2)
 pt<-prop.test(res.all$P[seq(from=1,to=100,by=5)],res.all$N[seq(from=1,to=100,by=5)])
@@ -166,4 +166,45 @@ text(expression(paste(chi^2, "=")),x=length(seq(from=1,to=100,by=5))/2,y=0.8)
 text(round(pt$statistic,0),x=length(seq(from=1,to=100,by=5))/2,y=0.7)
 text(expression(paste("p-value =")),x=length(seq(from=1,to=100,by=5))/2,y=0.6)
 text(signif(pt$p.value,2),x=length(seq(from=1,to=100,by=5))/2,y=0.5)
+
+
+pos <- res.all$P[seq(from=1,to=100,by=5)]
+neg <- res.all$N[seq(from=1,to=100,by=5)] - pos
+
+# use chi-sq test
+pt<-prop.test(pos, pos+neg)
+
+# use GLM for the same thing
+t   <- 1:20
+mat <- cbind(pos, neg)
+mod.glm <- glm(mat ~ as.factor(t), family="binomial")
+anova(mod.glm, test="Chisq")
+
+# ideally include auto-correlation, but this is too hard :(
+#mod.glm <- glmer(mat ~ as.factor(t), family="binomial")
+#anova(mod.glm, test="Chisq")
+#glmmPQL(mat ~ as.factor(t), family="binomial", correlation=corAR1())
+
+# testing autocorrelation
+# NOTE here that we're assuming constant sample size across time.
+# with different sample sizes we'd want to weight each datapoint by the (inverse of?) sample size
+t <- 1:10
+sp <- res.all$Sp[seq(from=1,to=1000,by=100)]
+lmres<-lm(sp ~ t)
+lmres2<-gls(sp~t, correlation=corAR1())
+
+
+
+acf(res.all$Sp[seq(from=1,to=1000,by=100)], lag.max = length(res.all$Sp[seq(from=1,to=1000,by=100)]),plot=T,main="")
+barplot2(res.all$Sp[seq(from=1,to=1000,by=100)], plot.ci=TRUE, ci.l=res.all$L[seq(from=1,to=1000,by=100)], ci.u=res.all$U[seq(from=1,to=1000,by=100)],
+         ylim=c(0,1),main="",ci.lty=2)#,names.arg=c(1:20))
+lmres<-lm(res.all$Sp[seq(from=1,to=1000,by=100)]~seq(from=1,to=10))
+abline(lmres,col="red",
+       lty=2,lwd=2)
+abline(lmres2, col="blue")
+pt<-prop.test(res.all$P[seq(from=1,to=1000,by=100)],res.all$N[seq(from=1,to=1000,by=100)])
+text(expression(paste(chi^2, "=")),x=length(seq(from=1,to=1000,by=100))/2,y=0.8)
+text(round(pt$statistic,0),x=length(seq(from=1,to=1000,by=100))/2,y=0.7)
+text(expression(paste("p-value =")),x=length(seq(from=1,to=1000,by=100))/2,y=0.6)
+text(signif(pt$p.value,2),x=length(seq(from=1,to=1000,by=100))/2,y=0.5)
 
