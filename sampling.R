@@ -21,15 +21,15 @@ abline(h=a, col="red")
 for (i in 1:num_tests)
   lines(c(i,i), ci[,i])
 pvals <- apply(xsamples, 2, function(x) { t.test(x, mu=a)$p.value })
-text(1:num_tests, max(ci)+0.5, round(pvals, 2))
+text(1:num_tests, max(ci)+0.5, round(pvals, 2),srt=90)
 
 padj<-p.adjust(pvals, method = "bonferroni", n = length(pvals))
-text(1:num_tests, min(ci)-2, round(padj, 2))
+text(1:num_tests, min(ci)-2, round(padj, 2),srt=90)
 
 # plot p-values and adjusted p-values
-plot(pvals)
+plot(pvals,ylim=c(0,1),pch=16)
 abline(h=0.05)
 
-plot(padj)
+plot(padj,ylim=c(0,1),pch=16)
 abline(h=0.05)
 
