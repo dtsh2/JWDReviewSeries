@@ -11,6 +11,28 @@ plot(spat.t)
 plot(Kest(spat.t))
 
 plot(envelope(spat.t,Kest))
+##
+# non-random
+x1<-c(runif(50))
+x2<-seq(0,1,by=0.1)
+x3<-runif(15,min=0.1,max=0.2)
+y1<-c(runif(50))
+y2<-seq(0,1,by=0.1)
+y3<-runif(15,min=0.1,max=0.2)
+xall<-c(x1,x2,x3)
+yall<-c(y1,y2,y3)
+par(pty="s")
+par(mfrow=c(2,2))
+plot(xall,yall,pch=16,xlim=c(0,1),ylim=c(0,1))
+plot(x1,y1,pch=16,xlim=c(0,1),ylim=c(0,1))
+plot(x2,y2,pch=16,xlim=c(0,1),ylim=c(0,1))
+plot(x3,y3,pch=16,xlim=c(0,1),ylim=c(0,1))
+
+spat.t<-ppp(xall, yall, c(0,1), c(0,1))
+plot(spat.t)
+plot(Kest(spat.t))
+
+plot(envelope(spat.t,Kest))
 
 ## add serological data
 pos<-rpois(100,lambda=15)
@@ -76,6 +98,6 @@ plot(dat$x,dat$y,pch = 20,col = dat$Col,cex=2)
 text(dat$x, dat$y, round(dat$Z, 2), cex=0.8)
 plot(dat$Z,dat$seropos)
 
-lmdat<-lm(dat$seropos~dat$Z)
+lmdat<-lm(dat$seropos~dat$Z+dat$y+dat$x)
 summary(lmdat)
 
