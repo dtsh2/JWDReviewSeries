@@ -1,11 +1,12 @@
+## clear environment and load packages
 rm(list=ls())
-
 library(waveslim)
 library(dplR)
 library(xts)
 library(wavelets)
 library(wavethresh)
 library(gplots)
+library(nlme)
 
 ## simulate cycles with frequency change and see what happens
 ##########################
@@ -13,168 +14,238 @@ library(gplots)
 ## Poisson
 ##
 
-TIME<-1:1000
-w<-rpois(1000,lambda=20)
-plot(1:1000,w)
-test<-morlet(w, x1 = seq_along(w), p2 = NULL, dj = 0.25, siglvl = 0.95)
+## create some random data with a poisson distribution
+TIME <- 1:1000
+w <- rpois(1000, lambda=20)
+plot(TIME, w, pch=20)
+
+## filled contour plot of continuous Morlet wavelet transform of data
+test <- morlet(w, x1=seq_along(w), p2=NULL, dj=0.25, siglvl=0.95)
 wavelet.plot(test)
-acf(w, lag.max = length(w),plot=T,main="")
 
-Seasonal<-3*sin(2*pi*TIME/100)+2*sin(2*pi*TIME/100)#+0.1*sin(2*pi*4*TIME/14)+0.1*cos(2*pi*4*TIME/14)
-x<-Seasonal+w
-plot(Seasonal)
-plot(x)#,type="l")
-#test<-morlet(x, x1 = seq_along(x), p2 = NULL, dj = 0.25, siglvl = 0.95)
-#wavelet.plot(test)
+## autocorrelation plot
+acf(w, lag.max=length(w), plot=T, main="")
 
-kappa=20; s=25; omega=10;phi=0; t=TIME
+## add seasonal pattern to data 
+# create and plot seasonal pattern
+Seasonal <- 3 * sin(2*pi*TIME/100) + 2 * sin(2*pi*TIME/100) #+ 0.1 * sin(2*pi*4*TIME/14) + 0.1 * cos(2*pi*4*TIME/14)
+plot(Seasonal, type="l")
 
-peaks<-(kappa*(1/sqrt((1/s)*pi)*exp(-((cos(pi*omega*t/1000-phi))^2)/(1/s))))
-plot(peaks,type="l")
-x3<-peaks+Seasonal+w
-plot(x3)#,type="l")
+# add seasonal pattern to random data and plot
+x <- Seasonal + w
+plot(x, pch=20)
+
+# Morlet wavelet transform plot
+test <- morlet(x, x1=seq_along(x), p2=NULL, dj=0.25, siglvl=0.95)
+wavelet.plot(test)
+
+# autocorrelation plot
+acf(x, lag.max = length(x),plot=T,main="")
+
+## add regular peaks to data
+# define peak parameters
+kappa = 20 # height
+s = 25 # width
+omega = 10 # frequency
+phi = 0 # offset
+t = TIME
+
+# create and plot peaks
+peaks <- kappa * (1 / sqrt((1/s)*pi) * exp(-((cos(pi*omega*t/1000 - phi))^2) / (1/s)))
+plot(peaks, type="l")
+
+# add peaks to above data and plot
+x2 <- peaks + x
+plot(x2, pch=20)
+
+# Morlet wavelet transform plot
+test <- morlet(x2, x1=seq_along(x2), p2=NULL, dj=0.25, siglvl=0.95)
+wavelet.plot(test)
+
+# autocorrelation plot
+acf(x2, lag.max = length(x2),plot=T,main="")
+
+## add an upward trend to data
+# create and plot trend
+trend <- 0.05 * TIME
+plot(trend, type="l")
+
+# add peaks to above data and plot
+x3 <- trend + x2
+plot(x3, pch=20)
+
+#Morlet wavelet transform plot
 test<-morlet(x3, x1 = seq_along(x3), p2 = NULL, dj = 0.25, siglvl = 0.95)
 wavelet.plot(test)
 
-acf(x3, lag.max = length(x3),plot=T,main="")
+# autocorrelation plot
+acf(x3, lag.max = length(x2),plot=T,main="")
 
-trend<-0.05*TIME
-x4<-peaks+Seasonal+w+trend
-plot(x4)#,type="l")
-test<-morlet(x4, x1 = seq_along(x4), p2 = NULL, dj = 0.25, siglvl = 0.95)
-wavelet.plot(test)
-
-plot(1:1000,w,
-     #type="l",
-     ylim=c(0,350),axes="n")
-lines(1:1000,Seasonal+80)
-lines(1:1000,peaks+120)
-lines(1:1000,trend+200)
-points(1:1000,x4+220)
-mtext(2,text="Signal",line=2,cex=1)
+## Show all the different components on one graph
+plot(TIME, w, ylim=c(0,350), axes="n", pch=20)
+lines(TIME, Seasonal+80)
+lines(TIME, peaks+120)
+lines(TIME, trend+200)
+points(TIME, x3+220, pch=20)
+mtext(1, text="Time", cex=1)
+mtext(2, text="Signal", line=2, cex=1)
 #mtext(2,text="Random  Daily Periodic  Trend Combined",line=1,at=c(25),cex=0.8)
 
-acf(x4, lag.max = length(x4),plot=T,main="")
+## have above data represent # of seropositives (spos) in a population of 300 over time
+tot <- 300
+spos <- x3
+sneg <- tot - x3
+sp <- spos / tot
 
-max(x4)
-min(x4)
-
-spos<-x4
-sneg<-300-x4
-plot(spos/(spos+sneg),type="l",ylab="Proportion seropositive")
-plot(100*spos/(spos+sneg),type="l",ylab="Seroprevalence (%)")
+# plot proportion seropositive (sp) and seroprevalence %
+plot(sp, type="l", ylab="Proportion seropositive")
+plot(100 * sp, type="l", ylab="Seroprevalence (%)")
 
 ###########
-## data and confidence intervals
+### data and confidence intervals
 
-sp<-spos/(spos+sneg)
-tot<-spos+sneg
-res.new<-rbind(round(spos,0),tot,sp)
-rownames(res.new)<-c("P","N","Sp")
-res.new<-t(res.new)
-class(res.new)
+## create matrix of total seropositives, total population, and seroprevalence
+res.new <- cbind(round(spos,0), tot, sp)
+colnames(res.new)<-c("P","N","Sp")
 
-res.u<-matrix(NA,ncol=1000,nrow=2)
+## create matrix with bounds for confidence intervals based on binomial test for res.new
+res.u <- matrix(NA, ncol=2, nrow=1000)
 for (ii in 1:1000){
-  res.u[1,ii]<-binom.test(res.new[ii],res.new[ii+1000])$conf.int[1]
-  res.u[2,ii]<-binom.test(res.new[ii],res.new[ii+1000])$conf.int[2]
+  res.u[ii,1] <- binom.test(res.new[ii], res.new[ii+1000])$conf.int[1]
+  res.u[ii,2] <- binom.test(res.new[ii], res.new[ii+1000])$conf.int[2]
 }
 
-res.u<-t(res.u)
-res.all<-cbind(res.new,res.u)
-dim(res.all)
-colnames(res.all)<-c("P","N","Sp","L","U")
+## combines res.new and res.u and turns them into a data.frame
+res.all <- cbind(res.new, res.u)
+colnames(res.all) <- c("P", "N", "Sp", "L", "U")
+res.all <- as.data.frame(res.all)
 
-res.all<-as.data.frame(res.all)
-
-## each sample get CIs
-
-barplot(res.all$Sp,ylim=c(0,1))
+## barplots with confidence intervals showing various sampling strategies
+# barplot of seroprevalence, 2nd one includes error bars
+barplot(res.all$Sp, ylim=c(0,1))
 barplot2(res.all$Sp, plot.ci=TRUE, ci.l=res.all$L, ci.u=res.all$U,
-         ylim=c(0,1),main="",ci.lty=2)#,names.arg=c(1:20))
-
+         ylim=c(0,1), main="", ci.lty=2, names.arg=c(1:1000))
+# barplot of only the first 10 samples
 barplot2(res.all$Sp[1:10], plot.ci=TRUE, ci.l=res.all$L[1:10], ci.u=res.all$U[1:10],
-         ylim=c(0,1),main="",ci.lty=2)#,names.arg=c(1:20))
-####
-barplot2(res.all$Sp[c(1,100,150,300,1000)], plot.ci=TRUE, ci.l=res.all$L[c(1,100,150,300,1000)], ci.u=res.all$U[c(1,100,150,300,1000)],
-         ylim=c(0,1),main="",ci.lty=2)#,names.arg=c(1:20))
+         ylim=c(0,1),main="",ci.lty=2, names.arg=c(1:10))
+# barplot of samples spaced throughout
+time.spacing <- c(1,100,150,300,1000)
+barplot2(res.all$Sp[time.spacing], plot.ci=TRUE, 
+         ci.l=res.all$L[time.spacing], ci.u=res.all$U[time.spacing],
+         ylim=c(0,1), main="",ci.lty=2, names.arg=time.spacing)
 
-## to here
+## store data corresponding to time.spacing in new vectors 
+# (P = seropositive, T = total, N = seronegative, SP = seroprevalence)
+res.P <- res.all$P[time.spacing]
+res.T <- res.all$N[time.spacing]
+res.N <- res.T - res.P
+res.SP <- res.P / res.T
 
-res.P<-res.all$P[c(1,100,150,300,1000)]
-res.T<-res.all$N[c(1,100,150,300,1000)]
-res.N<-res.T-res.P
-## chi squared test
-prop.test(res.P,res.N)
-res.data<-cbind(res.P,res.N)
+## adds linear regression for seropositive proportion to plot
+t <- 1:5
+lmres <- lm(res.SP ~ t)
+abline(lmres, col="red", lty=2)
+
+## 2 methods for getting chi squared test for seropositives, total
+prop.test(res.P, res.T) #1
+res.data <- cbind(res.P, res.T) #2
 chisq.test(res.data)
-res.SP<-res.P/res.T
-t<-1:5
-lmres<-lm(res.SP~t)
-abline(lmres,col="red",
-       lty=2)
-####
 
-#acf(res.all$Sp, lag.max = length(res.all$Sp),plot=T,main="")
-#acf(res.SP)
+##############
+## autocorrelation function for all data vs. time.spacing data
+acf(res.all$Sp, lag.max = length(res.all$Sp), plot=T, main="")
+acf(res.SP)
 
+### show how autocorrelation and linear regression change with various sampling strategies
+## format graph display for following section
 par(mfrow=c(2,4))
-acf(res.all$Sp[seq(from=1,to=1000,by=100)], lag.max = length(res.all$Sp[seq(from=1,to=1000,by=100)]),plot=T,main="")
-barplot2(res.all$Sp[seq(from=1,to=1000,by=100)], plot.ci=TRUE, ci.l=res.all$L[seq(from=1,to=1000,by=100)], ci.u=res.all$U[seq(from=1,to=1000,by=100)],
-         ylim=c(0,1),main="",ci.lty=2)#,names.arg=c(1:20))
-lmres<-lm(res.all$Sp[seq(from=1,to=1000,by=100)]~seq(from=1,to=10))
-abline(lmres,col="red",
-       lty=2,lwd=2)
-pt<-prop.test(res.all$P[seq(from=1,to=1000,by=100)],res.all$N[seq(from=1,to=1000,by=100)])
-text(expression(paste(chi^2, "=")),x=length(seq(from=1,to=1000,by=100))/2,y=0.8)
-text(round(pt$statistic,0),x=length(seq(from=1,to=1000,by=100))/2,y=0.7)
-text(expression(paste("p-value =")),x=length(seq(from=1,to=1000,by=100))/2,y=0.6)
-text(signif(pt$p.value,2),x=length(seq(from=1,to=1000,by=100))/2,y=0.5)
 
-acf(res.all$Sp[seq(from=1,to=1000,by=10)], lag.max = length(res.all$Sp[seq(from=1,to=1000,by=10)]),plot=T,main="")
-barplot2(res.all$Sp[seq(from=1,to=1000,by=10)], plot.ci=TRUE, ci.l=res.all$L[seq(from=1,to=1000,by=10)], ci.u=res.all$U[seq(from=1,to=1000,by=10)],
-         ylim=c(0,1),main="",ci.lty=2)#,names.arg=c(1:20))
-lmres<-lm(res.all$Sp[seq(from=1,to=1000,by=10)]~seq(from=1,to=100))
-abline(lmres,col="red",
-       lty=2,lwd=2)
-pt<-prop.test(res.all$P[seq(from=1,to=1000,by=10)],res.all$N[seq(from=1,to=1000,by=10)])
-text(expression(paste(chi^2, "=")),x=length(seq(from=1,to=1000,by=10))/2,y=0.8)
-text(round(pt$statistic,0),x=length(seq(from=1,to=1000,by=10))/2,y=0.7)
-text(expression(paste("p-value =")),x=length(seq(from=1,to=1000,by=10))/2,y=0.6)
-text(signif(pt$p.value,2),x=length(seq(from=1,to=1000,by=10))/2,y=0.5)
+## sample every 100 
+every.hundred <- seq(from=1, to=1000, by=100)
+# autocorrelation
+acf(res.all$Sp[every.hundred], lag.max = length(res.all$Sp[every.hundred]), 
+    plot=T, main="Autocorrelation every 100")
+# make barplot of seropos data counting by 100s
+barplot2(res.all$Sp[every.hundred], plot.ci=TRUE, 
+         ci.l=res.all$L[every.hundred], ci.u=res.all$U[every.hundred],
+         ylim=c(0,1), main="Sample every 100", ci.lty=2, names.arg=every.hundred)
+# add linear regression line
+lmres<-lm(res.all$Sp[every.hundred] ~ c(1:10))
+abline(lmres, col="red", lty=2, lwd=2) 
+# write chi^2 and p-value above graph
+pt <- prop.test(res.all$P[every.hundred], res.all$N[every.hundred])
+text(expression(paste(chi^2, "=")), x=length(every.hundred)/2, y=0.8)
+text(round(pt$statistic, 0), x=length(every.hundred)/2, y=0.7)
+text(expression(paste("p-value =")), x=length(every.hundred)/2, y=0.6)
+text(signif(pt$p.value, 2), x=length(every.hundred)/2, y=0.5)
 
-acf(res.all$Sp[seq(from=1,to=100,by=10)], lag.max = length(res.all$Sp[seq(from=1,to=100,by=10)]),plot=T,main="")
-barplot2(res.all$Sp[seq(from=1,to=100,by=10)], plot.ci=TRUE, ci.l=res.all$L[seq(from=1,to=100,by=10)], ci.u=res.all$U[seq(from=1,to=100,by=10)],
-         ylim=c(0,1),main="",ci.lty=2)#,names.arg=c(1:20))
-lmres<-lm(res.all$Sp[seq(from=1,to=100,by=10)]~seq(from=1,to=10))
-abline(lmres,col="red",
-       lty=2,lwd=2)
-pt<-prop.test(res.all$P[seq(from=1,to=100,by=10)],res.all$N[seq(from=1,to=100,by=10)])
-text(expression(paste(chi^2, "=")),x=length(seq(from=1,to=100,by=10))/2,y=0.8)
-text(round(pt$statistic,0),x=length(seq(from=1,to=100,by=10))/2,y=0.7)
-text(expression(paste("p-value =")),x=length(seq(from=1,to=100,by=10))/2,y=0.6)
-text(signif(pt$p.value,2),x=length(seq(from=1,to=100,by=10))/2,y=0.5)
+## sample every 10
+every.ten <- seq(from=1, to=1000, by=10)
+# autocorrelation
+acf(res.all$Sp[every.ten], lag.max = length(res.all$Sp[every.ten]), 
+    plot=T, main="Autocorrelation every 10")
+# make barplot of seropos data counting by 100s
+barplot2(res.all$Sp[every.ten], plot.ci=TRUE, 
+         ci.l=res.all$L[every.ten], ci.u=res.all$U[every.ten],
+         ylim=c(0,1), main="Sample every 10", ci.lty=2, names.arg=every.ten)
+# add linear regression line
+lmres<-lm(res.all$Sp[every.ten] ~ c(1:100))
+abline(lmres, col="red", lty=2, lwd=2) 
+# write chi^2 and p-value above graph
+pt <- prop.test(res.all$P[every.ten], res.all$N[every.ten])
+text(expression(paste(chi^2, "=")), x=length(every.ten)/2, y=0.8)
+text(round(pt$statistic, 0), x=length(every.ten)/2, y=0.7)
+text(expression(paste("p-value =")), x=length(every.ten)/2, y=0.6)
+text(signif(pt$p.value, 2), x=length(every.ten)/2, y=0.5)
 
-acf(res.all$Sp[seq(from=1,to=100,by=5)], lag.max = length(res.all$Sp[seq(from=1,to=100,by=5)]),plot=T,main="")
-barplot2(res.all$Sp[seq(from=1,to=100,by=5)], plot.ci=TRUE, ci.l=res.all$L[seq(from=1,to=100,by=5)], ci.u=res.all$U[seq(from=1,to=100,by=5)],
-         ylim=c(0,1),main="",ci.lty=2)#,names.arg=c(1:20))
-lmres<-lm(res.all$Sp[seq(from=1,to=100,by=5)]~seq(from=1,to=20))
-abline(lmres,col="red",
-       lty=2,lwd=2)
-pt<-prop.test(res.all$P[seq(from=1,to=100,by=5)],res.all$N[seq(from=1,to=100,by=5)])
-text(expression(paste(chi^2, "=")),x=length(seq(from=1,to=100,by=5))/2,y=0.8)
-text(round(pt$statistic,0),x=length(seq(from=1,to=100,by=5))/2,y=0.7)
-text(expression(paste("p-value =")),x=length(seq(from=1,to=100,by=5))/2,y=0.6)
-text(signif(pt$p.value,2),x=length(seq(from=1,to=100,by=5))/2,y=0.5)
+## sample every 10 within the first 100
+hundred.by.ten = seq(from=1, to=100, by=10)
+# autocorrelation
+acf(res.all$Sp[hundred.by.ten], lag.max = length(res.all$Sp[hundred.by.ten]), 
+    plot=T, main="Autocorrelation every 10 until 100")
+# make barplot of seropos data counting by 100s
+barplot2(res.all$Sp[hundred.by.ten], plot.ci=TRUE, 
+         ci.l=res.all$L[hundred.by.ten], ci.u=res.all$U[hundred.by.ten],
+         ylim=c(0,1), main="Sample every 10 until 100", ci.lty=2, names.arg=hundred.by.ten)
+# add linear regression line
+lmres<-lm(res.all$Sp[hundred.by.ten] ~ c(1:10))
+abline(lmres, col="red", lty=2, lwd=2) 
+# write chi^2 and p-value above graph
+pt <- prop.test(res.all$P[hundred.by.ten], res.all$N[hundred.by.ten])
+text(expression(paste(chi^2, "=")), x=length(hundred.by.ten)/2, y=0.8)
+text(round(pt$statistic, 0), x=length(hundred.by.ten)/2, y=0.7)
+text(expression(paste("p-value =")), x=length(hundred.by.ten)/2, y=0.6)
+text(signif(pt$p.value, 2), x=length(hundred.by.ten)/2, y=0.5)
 
+## sample every 5 within the first 100
+hundred.by.five = seq(from=1, to=100, by=5)
+# autocorrelation
+acf(res.all$Sp[hundred.by.five], lag.max = length(res.all$Sp[hundred.by.five]), 
+    plot=T, main="Autocorrelation every 5 until 100")
+# make barplot of seropos data counting by 100s
+barplot2(res.all$Sp[hundred.by.five], plot.ci=TRUE, 
+         ci.l=res.all$L[hundred.by.five], ci.u=res.all$U[hundred.by.five],
+         ylim=c(0,1), main="Sample every 5 until 100", ci.lty=2, names.arg=hundred.by.five)
+# add linear regression line
+lmres<-lm(res.all$Sp[hundred.by.five] ~ c(1:20))
+abline(lmres, col="red", lty=2, lwd=2) 
+# write chi^2 and p-value above graph
+pt <- prop.test(res.all$P[hundred.by.five], res.all$N[hundred.by.five])
+text(expression(paste(chi^2, "=")), x=length(hundred.by.five)/2, y=0.8)
+text(round(pt$statistic, 0), x=length(hundred.by.five)/2, y=0.7)
+text(expression(paste("p-value =")), x=length(hundred.by.five)/2, y=0.6)
+text(signif(pt$p.value, 2), x=length(hundred.by.five)/2, y=0.5)
 
-pos <- res.all$P[seq(from=1,to=100,by=5)]
-neg <- res.all$N[seq(from=1,to=100,by=5)] - pos
+###########
+## a few different chi squared methods
+# save seropositive and seronegative data for every 5 up to 100
+pos <- res.all$P[hundred.by.five]
+neg <- res.all$N[hundred.by.five] - pos
 
-# use chi-sq test
-pt<-prop.test(pos, pos+neg)
+# use chi-sq via prop.test
+pt <- prop.test(pos, pos+neg)
 
-# use GLM for the same thing
+# use GLM 
 t   <- 1:20
 mat <- cbind(pos, neg)
 mod.glm <- glm(mat ~ as.factor(t), family="binomial")
@@ -185,26 +256,35 @@ anova(mod.glm, test="Chisq")
 #anova(mod.glm, test="Chisq")
 #glmmPQL(mat ~ as.factor(t), family="binomial", correlation=corAR1())
 
-# testing autocorrelation
-# NOTE here that we're assuming constant sample size across time.
-# with different sample sizes we'd want to weight each datapoint by the (inverse of?) sample size
+###########
+## Plot autocorrelation and 2 different linear models
+## lmres2 accounts for autocorrelation
+## NOTE here that we're assuming constant sample size across time.
+## with different sample sizes we'd want to weight each datapoint by the (inverse of?) sample size
+
+# sample every 100, take 2 different types of linear model
 t <- 1:10
-sp <- res.all$Sp[seq(from=1,to=1000,by=100)]
-lmres<-lm(sp ~ t)
-lmres2<-gls(sp~t, correlation=corAR1())
+seroprev <- res.all$Sp[every.hundred]
+lmres<-lm(seroprev ~ t)
+lmres2<-gls(seroprev~t, correlation=corAR1())
 
+# reformat plot area
+par(mfrow=c(1,1))
 
+# autocorrelation 
+acf(seroprev, lag.max=length(seroprev), plot=T, main="Autocorrelation every 100")
 
-acf(res.all$Sp[seq(from=1,to=1000,by=100)], lag.max = length(res.all$Sp[seq(from=1,to=1000,by=100)]),plot=T,main="")
-barplot2(res.all$Sp[seq(from=1,to=1000,by=100)], plot.ci=TRUE, ci.l=res.all$L[seq(from=1,to=1000,by=100)], ci.u=res.all$U[seq(from=1,to=1000,by=100)],
-         ylim=c(0,1),main="",ci.lty=2)#,names.arg=c(1:20))
-lmres<-lm(res.all$Sp[seq(from=1,to=1000,by=100)]~seq(from=1,to=10))
-abline(lmres,col="red",
-       lty=2,lwd=2)
+# plot + add linear models
+barplot2(seroprev, plot.ci=TRUE, 
+         ci.l=res.all$L[every.hundred], ci.u=res.all$U[every.hundred],
+         ylim=c(0,1),main="Sample every 100",ci.lty=2, names.arg=every.hundred)
+abline(lmres, col="red", lty=2,lwd=2)
 abline(lmres2, col="blue")
-pt<-prop.test(res.all$P[seq(from=1,to=1000,by=100)],res.all$N[seq(from=1,to=1000,by=100)])
-text(expression(paste(chi^2, "=")),x=length(seq(from=1,to=1000,by=100))/2,y=0.8)
-text(round(pt$statistic,0),x=length(seq(from=1,to=1000,by=100))/2,y=0.7)
-text(expression(paste("p-value =")),x=length(seq(from=1,to=1000,by=100))/2,y=0.6)
-text(signif(pt$p.value,2),x=length(seq(from=1,to=1000,by=100))/2,y=0.5)
+
+# add chi^2 and p-value text
+pt <- prop.test(res.all$P[every.hundred], res.all$N[every.hundred])
+text(expression(paste(chi^2, "=")), x=length(every.hundred)/2, y=0.8)
+text(round(pt$statistic, 0), x=length(every.hundred)/2, y=0.7)
+text(expression(paste("p-value =")), x=length(every.hundred)/2, y=0.6)
+text(signif(pt$p.value, 2), x=length(every.hundred)/2, y=0.5)
 
