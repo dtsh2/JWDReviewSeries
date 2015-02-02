@@ -13,7 +13,9 @@ library(nlme)
 ##
 ## Poisson
 ##
-
+## format plot areas
+par(mfrow=c(1,1))
+par(mar=c(5,5,2,7))
 ## create some random data with a poisson distribution
 TIME <- 1:1000
 w <- rpois(1000, lambda=20)
@@ -82,14 +84,16 @@ wavelet.plot(test)
 acf(x3, lag.max = length(x2),plot=T,main="")
 
 ## Show all the different components on one graph
-plot(TIME, w, ylim=c(0,350), axes="n", pch=20)
+plot(TIME, w, ylim=c(0,350), pch=20, axes='n')
 lines(TIME, Seasonal+80)
 lines(TIME, peaks+120)
 lines(TIME, trend+200)
 points(TIME, x3+220, pch=20)
-mtext(1, text="Time", cex=1)
-mtext(2, text="Signal", line=2, cex=1)
-#mtext(2,text="Random  Daily Periodic  Trend Combined",line=1,at=c(25),cex=0.8)
+axis(side=4, at=c(20, 80, 150, 230, 300), 
+     labels=c("Random", "Daily", "Periodic", "Trend", "Combined"), 
+     tick=FALSE, las=1)
+mtext(side=1, "Time", line=1)
+mtext(side=2, "Signal", line=1)
 
 ## have above data represent # of seropositives (spos) in a population of 300 over time
 tot <- 300
@@ -287,4 +291,5 @@ text(expression(paste(chi^2, "=")), x=length(every.hundred)/2, y=0.8)
 text(round(pt$statistic, 0), x=length(every.hundred)/2, y=0.7)
 text(expression(paste("p-value =")), x=length(every.hundred)/2, y=0.6)
 text(signif(pt$p.value, 2), x=length(every.hundred)/2, y=0.5)
+
 
