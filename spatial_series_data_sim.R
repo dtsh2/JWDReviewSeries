@@ -107,18 +107,18 @@ diff <- seropos - mean(seropos)
 dat <- data.frame(x, y, diff, seropos, Z)
 # use diff as plot colors and add labels to points
 rbPal <- colorRampPalette(c('blue', 'red'))
-dat$Col <- rbPal(10)[as.numeric(cut(diff, breaks = 10))]
-plot(dat$x, dat$y, pch = 20, col = dat$Col, cex=2)
+dat$Col.diff <- rbPal(10)[as.numeric(cut(diff, breaks = 10))]
+plot(dat$x, dat$y, pch=20, col=dat$Col.diff, cex=2)
 text(dat$x, dat$y, round(dat$diff, 2), cex=0.8) 
 
 ## take away the colored points, only labels shown
-plot(dat$x,dat$y,pch = 20,col = "white",cex=2)
+plot(dat$x, dat$y, pch=20, col="white", cex=2)
 text(dat$x, dat$y, round(dat$diff, 2), cex=0.8)
 
 ## create a heatmap based on actual data (only labels should change)
 ## red = high seropos, blue = low seropos
-dat$Col <- rbPal(10)[as.numeric(cut(dat$seropos, breaks = 10))]
-plot(dat$x, dat$y, pch = 20, col = dat$Col, cex=2)
+dat$Col.seropos <- rbPal(10)[as.numeric(cut(dat$seropos, breaks = 10))]
+plot(dat$x, dat$y, pch = 20, col = dat$Col.seropos, cex=2)
 text(dat$x, dat$y, round(dat$seropos, 2), cex=0.8)
 
 ## take away the colored points, only labels shown
@@ -130,15 +130,55 @@ text(dat$x, dat$y, round(dat$seropos, 2), cex=0.8)
 ## and using Z (ascending linear with some randomness) as plot point color
 # plot heatmap using Z as color for points
 par(mfrow=c(2,2))
-dat$Col <- rbPal(10)[as.numeric(cut(dat$Z, breaks=10))]
-plot(dat$x, dat$y, pch=20, col=dat$Col, cex=2)
+dat$Col.Z <- rbPal(10)[as.numeric(cut(dat$Z, breaks=10))]
+plot(dat$x, dat$y, pch=20, col=dat$Col.Z, cex=2)
 text(dat$x, dat$y, round(dat$Z, 2), cex=0.8)
 # show relationship between Z and seropos
 plot(dat$Z, dat$seropos)
 # plot heatmap using seropos as color for points
-dat$Col <- rbPal(10)[as.numeric(cut(dat$seropos, breaks = 10))]
-plot(dat$x, dat$y, pch = 20, col = dat$Col, cex=2)
+plot(dat$x, dat$y, pch = 20, col = dat$Col.seropos, cex=2)
 text(dat$x, dat$y, round(dat$seropos, 2), cex=0.8)
+
+## compare seropos and Z using color as well as plot point size
+############ method 1
+par(mfrow=c(1,2))
+# Z
+plot(dat$x, dat$y, main="Z", pch=20, col=dat$Col.Z, cex=0.4*dat$Z)
+#text(dat$x, dat$y, round(dat$Z, 2), cex=0.8)
+# seropos
+plot(dat$x, dat$y, main="seropos", pch=20, col=dat$Col.seropos, cex=50*dat$seropos)
+#text(dat$x, dat$y, round(dat$seropos, 2), cex=0.8)
+
+########### method 2
+# Z
+with(dat, symbols(dat$x, dat$y, circles=dat$Z, inches=0.25, bg=dat$Col.Z, fg=dat$Col.Z))
+title(main="Z")
+#text(dat$x, dat$y, round(dat$Z, 2), cex=0.8)
+# seropos
+with(dat, symbols(dat$x, dat$y, circles=dat$seropos, inches=0.25, bg=dat$Col.seropos, fg=dat$Col.seropos))
+title(main="seropos")
+#text(dat$x, dat$y, round(dat$seropos, 2), cex=0.8)
+
+########### method 3
+library(ggplot2)
+library(gridExtra)
+# Z
+p1 <- ggplot(dat, aes(dat$x, dat$y, colour=dat$Col.Z, size=dat$Z, label=dat$Z)) +
+ggtitle("Z") +
+geom_point() +
+#geom_text(aes(dat$x, dat$y, label=round(dat$Z, 2), colour='black'), size=4) +
+scale_colour_identity() +
+scale_size_continuous(range=c(1, 20), guide='none')
+
+# seropos
+p2 <- ggplot(dat, aes(dat$x, dat$y, colour=dat$Col.seropos, size=dat$seropos)) +
+ggtitle("seropos") +
+geom_point() +
+#geom_text(aes(dat$x, dat$y, label=round(dat$seropos, 2), colour='black'), size=4) +
+scale_colour_identity() +
+scale_size_continuous(range=c(1, 20), guide='none')
+
+grid.arrange(p1, p2, ncol=2)
 
 ## show linear model for seropos vs Z, and (x,y) coordinates
 lmdat <- lm(dat$seropos ~ dat$Z + dat$y + dat$x)
