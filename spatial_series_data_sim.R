@@ -101,10 +101,10 @@ summary(lin.m)
 ## create a heatmap based on difference from mean
 ## red = seroprevalence above mean, blue = seroprevalence below mean
 # format plot area and define difference, put coordinates, seropos, 
-# and difference in data.frame
+# difference, and covariates in data.frame
 par(mfrow=c(1, 2))
 diff <- seropos - mean(seropos)
-dat <- data.frame(x, y, diff, seropos, Z)
+dat <- data.frame(x, y, diff, seropos, Z, W, V)
 # use diff as plot colors and add labels to points
 rbPal <- colorRampPalette(c('blue', 'red'))
 dat$Col.diff <- rbPal(10)[as.numeric(cut(diff, breaks = 10))]
@@ -139,46 +139,72 @@ plot(dat$Z, dat$seropos)
 plot(dat$x, dat$y, pch = 20, col = dat$Col.seropos, cex=2)
 text(dat$x, dat$y, round(dat$seropos, 2), cex=0.8)
 
-## compare seropos and Z using color as well as plot point size
-############ method 1
-par(mfrow=c(1,2))
-# Z
-plot(dat$x, dat$y, main="Z", pch=20, col=dat$Col.Z, cex=0.4*dat$Z)
-#text(dat$x, dat$y, round(dat$Z, 2), cex=0.8)
-# seropos
-plot(dat$x, dat$y, main="seropos", pch=20, col=dat$Col.seropos, cex=50*dat$seropos)
-#text(dat$x, dat$y, round(dat$seropos, 2), cex=0.8)
+## compare seropos and covariates (Z, W, & V) using color as well as plot point size
+########### method 1
+par(mfrow=c(2, 2))
 
-########### method 2
-# Z
-with(dat, symbols(dat$x, dat$y, circles=dat$Z, inches=0.25, bg=dat$Col.Z, fg=dat$Col.Z))
-title(main="Z")
-#text(dat$x, dat$y, round(dat$Z, 2), cex=0.8)
 # seropos
-with(dat, symbols(dat$x, dat$y, circles=dat$seropos, inches=0.25, bg=dat$Col.seropos, fg=dat$Col.seropos))
+with(dat, symbols(dat$x, dat$y, circles=dat$seropos, inches=0.25, 
+                  bg=dat$Col.seropos, fg=dat$Col.seropos))
 title(main="seropos")
 #text(dat$x, dat$y, round(dat$seropos, 2), cex=0.8)
 
-########### method 3
+# Z
+with(dat, symbols(dat$x, dat$y, circles=dat$Z, inches=0.25, 
+                  bg=dat$Col.Z, fg=dat$Col.Z))
+title(main="Z")
+#text(dat$x, dat$y, round(dat$Z, 2), cex=0.8)
+
+# W
+dat$Col.W <- rbPal(10)[as.numeric(cut(dat$W, breaks=10))]
+with(dat, symbols(dat$x, dat$y, circles=dat$W, inches=0.25, 
+                  bg=dat$Col.W, fg=dat$Col.W))
+title(main="W")
+#text(dat$x, dat$y, round(dat$W, 2), cex=0.8)
+
+# V
+dat$Col.V <- rbPal(10)[as.numeric(cut(dat$V, breaks=10))]
+with(dat, symbols(dat$x, dat$y, circles=dat$V, inches=0.25, 
+                  bg=dat$Col.V, fg=dat$Col.V))
+title(main="V")
+#text(dat$x, dat$y, round(dat$V, 2), cex=0.8)
+
+########### method 2
 library(ggplot2)
 library(gridExtra)
+# seropos
+p1 <- ggplot(dat, aes(dat$x, dat$y, colour=dat$Col.seropos, size=dat$seropos)) +
+  ggtitle("seropos") +
+  geom_point() +
+  #geom_text(aes(dat$x, dat$y, label=round(dat$seropos, 2), colour='black'), size=4) +
+  scale_colour_identity() +
+  scale_size_continuous(range=c(1, 20), guide='none')
+
 # Z
-p1 <- ggplot(dat, aes(dat$x, dat$y, colour=dat$Col.Z, size=dat$Z, label=dat$Z)) +
+p2 <- ggplot(dat, aes(dat$x, dat$y, colour=dat$Col.Z, size=dat$Z, label=dat$Z)) +
 ggtitle("Z") +
 geom_point() +
 #geom_text(aes(dat$x, dat$y, label=round(dat$Z, 2), colour='black'), size=4) +
 scale_colour_identity() +
 scale_size_continuous(range=c(1, 20), guide='none')
 
-# seropos
-p2 <- ggplot(dat, aes(dat$x, dat$y, colour=dat$Col.seropos, size=dat$seropos)) +
-ggtitle("seropos") +
-geom_point() +
-#geom_text(aes(dat$x, dat$y, label=round(dat$seropos, 2), colour='black'), size=4) +
-scale_colour_identity() +
-scale_size_continuous(range=c(1, 20), guide='none')
+# W
+p3 <- ggplot(dat, aes(dat$x, dat$y, colour=dat$Col.W, size=dat$W, label=dat$W)) +
+  ggtitle("W") +
+  geom_point() +
+  #geom_text(aes(dat$x, dat$y, label=round(dat$W, 2), colour='black'), size=4) +
+  scale_colour_identity() +
+  scale_size_continuous(range=c(1, 20), guide='none')
 
-grid.arrange(p1, p2, ncol=2)
+# V
+p4 <- ggplot(dat, aes(dat$x, dat$y, colour=dat$Col.V, size=dat$V, label=dat$V)) +
+  ggtitle("V") +
+  geom_point() +
+  #geom_text(aes(dat$x, dat$y, label=round(dat$V, 2), colour='black'), size=4) +
+  scale_colour_identity() +
+  scale_size_continuous(range=c(1, 20), guide='none')
+grid.arrange(p1, p2, p3, p4, nrow=2, ncol=2)
+
 
 ## show linear model for seropos vs Z, and (x,y) coordinates
 lmdat <- lm(dat$seropos ~ dat$Z + dat$y + dat$x)
