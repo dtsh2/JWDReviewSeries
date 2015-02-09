@@ -7,6 +7,8 @@
 rm(list=ls())
 library(lme4)
 
+### 88 bats from 4 cohorts sampled over 3 years (10 sampling days)
+### Age, sex, and titre recorded. Individuals sampled an average of 5.3 times.
 ## get data and check first few rows
 captive=read.csv("Captive_sero_Jul2011.csv", header=T) 
 head(captive) 
@@ -23,25 +25,28 @@ captive1=na.omit(captive)
 
 ## from now on, work within the captive1 data frame
 attach(captive1)
-#names(captive1)
+names(captive1)
 
-## various linear models
-# linear model of logTitre against Days, with different fits for each Age group
+## log linear model of Titre against Days
+## with different fits for each Age group
 per_group_model <- lmList(LogTitre ~ Days|Age, 
                           data=captive1)
-# linear model of logtitre against Days, Age, and the interaction between Days and Age
-overall_model <- lm(LogTitre ~ -1 + Days*Age, 
-                    data=captive1)
+## log linear model (means parameterization) of Titre against Days, Age,
+## and interacting effects of Days & Age
+overall_model <- lm(LogTitre ~ -1 + Days*Age, data=captive1)
 
-# linear model of logtitre against days, with random effects from ID (only for Neonates)
-# get coefficients from this model
+## mixed effects log linear model of Titre only for Neonates
+# fixed effects = days, 
+# random effects = Days (continuous) | ID (categorical)
 per_group_model_ranef <- lmer(LogTitre ~ Days + (Days | ID), 
                               data=captive1, subset=Age=="Neonate")
+# get coefficients from this model
 pg_coef.Neonate <- coef(per_group_model_ranef)$ID
-# linear model of average for whole Neonate group
+
+# Average for whole Neonate group
 per_group_model.Neonate <- lm(LogTitre ~ Days, data=captive1, subset=Age=="Neonate")
 
-## plot logTitre against Days, draw linear models for each indvidual (color coded) 
+## plot logTitre against Days, draw models for each indvidual (color coded) 
 ## and the group as a whole (black and dashed)
 par(mfrow=c(1, 1))
 plot(jitter(LogTitre) ~ Days, data=subset(captive1, Age=="Neonate"), 
@@ -54,7 +59,7 @@ for (i in 1:13)
 }
 
 ## Do the same for SM
-# individual lms
+# individual lmes
 per_group_model_ranef <- lmer(LogTitre ~ Days + (Days | ID), 
                               data=captive1, subset=Age=="SM")
 pg_coef.SM <- coef(per_group_model_ranef)$ID
@@ -73,7 +78,7 @@ for (i in 1:57)
 }
 
 ## Do the same for Juvenile
-# individual lms
+# individual lmes
 per_group_model_ranef <- lmer(LogTitre ~ Days + (Days | ID), 
                               data=captive1, subset=Age=="Juvenile")
 pg_coef.Juvenile <- coef(per_group_model_ranef)$ID
@@ -92,7 +97,7 @@ for (i in 1:8)
 }
 
 ## Do the same for SIM
-# individual lms
+# individual lmes
 per_group_model_ranef <- lmer(LogTitre ~ Days + (Days | ID), 
                               data=captive1, subset=Age=="SIM")
 pg_coef.SIM <- coef(per_group_model_ranef)$ID
@@ -134,9 +139,9 @@ x <- data.frame(id=rep(1:num_ind, meas_per_ind),
                 val=as.vector(ind_val))
 x <- x[order(x$id),]
 
-## various linear models
-#linear model of values against group with random effects from id
+## Show difference between regular linear model and mixed effects model 
+# fixed effects = grp, random effects = id (categorical)
 summary(lmer(val ~ grp + (1|id), data=x))
-# linear model of values against group
+# no random effects
 summary(lm(val ~ grp, data=x))
 
