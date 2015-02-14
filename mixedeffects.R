@@ -43,8 +43,8 @@ per_group_model_ranef <- lmer(LogTitre ~ Days + (Days | ID),
 # get coefficients from this model
 pg_coef.Neonate <- coef(per_group_model_ranef)$ID
 
-# Average for whole Neonate group
-per_group_model.Neonate <- lm(LogTitre ~ Days, data=captive1, subset=Age=="Neonate")
+# Average for whole Neonate group (can use median if preferred)
+per_group_model.Neonate <- c(mean(pg_coef.Neonate$"(Intercept)"), mean(pg_coef.Neonate$Days))
 
 ## plot logTitre against Days, draw models for each indvidual (color coded) 
 ## and the group as a whole (black and dashed)
@@ -64,8 +64,8 @@ per_group_model_ranef <- lmer(LogTitre ~ Days + (Days | ID),
                               data=captive1, subset=Age=="SM")
 pg_coef.SM <- coef(per_group_model_ranef)$ID
 
-# average lm
-per_group_model.SM <- lm(LogTitre ~ Days, data=captive1, subset=Age=="SM")
+# average lme
+per_group_model.SM <- c(mean(pg_coef.SM$"(Intercept)"), mean(pg_coef.SM$Days))
 
 # plot 
 par(mfrow=c(1, 1))
@@ -84,7 +84,7 @@ per_group_model_ranef <- lmer(LogTitre ~ Days + (Days | ID),
 pg_coef.Juvenile <- coef(per_group_model_ranef)$ID
 
 # average lm
-per_group_model.Juvenile <- lm(LogTitre ~ Days, data=captive1, subset=Age=="Juvenile")
+per_group_model.Juvenile <- c(mean(pg_coef.Juvenile$"(Intercept)"), mean(pg_coef.Juvenile$Days))
 
 # plot 
 par(mfrow=c(1, 1))
@@ -103,7 +103,7 @@ per_group_model_ranef <- lmer(LogTitre ~ Days + (Days | ID),
 pg_coef.SIM <- coef(per_group_model_ranef)$ID
 
 # average lm
-per_group_model.SIM <- lm(LogTitre ~ Days, data=captive1, subset=Age=="SIM")
+per_group_model.SIM <- c(mean(pg_coef.SIM$"(Intercept)"), mean(pg_coef.SIM$Days))
 
 # plot 
 par(mfrow=c(1, 1))
